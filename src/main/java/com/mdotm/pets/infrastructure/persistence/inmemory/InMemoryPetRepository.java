@@ -63,13 +63,19 @@ public class InMemoryPetRepository implements PetRepository {
         }
 
         // Sorting
-        Comparator<Pet> comparator = Comparator.comparing(Pet::id); // default
+        Comparator<Pet> comparator;
         if (pageRequest.sort() != null && !pageRequest.sort().isEmpty()) {
+            Comparator<Pet> c = null;
             for (SortOrder order : pageRequest.sort()) {
-                Comparator<Pet> c = comparatorFor(order.property());
-                if (order.direction() == Direction.DESC) c = c.reversed();
-                comparator = comparator.thenComparing(c);
+                Comparator<Pet> next = comparatorFor(order.property());
+                if (order.direction() == Direction.DESC) next = next.reversed();
+                c = (c == null) ? next : c.thenComparing(next);
             }
+            comparator = (c == null)
+                    ? Comparator.comparing(Pet::id, Comparator.nullsLast(Long::compareTo))
+                    : c.thenComparing(Comparator.comparing(Pet::id, Comparator.nullsLast(Long::compareTo)));
+        } else {
+            comparator = Comparator.comparing(Pet::id, Comparator.nullsLast(Long::compareTo));
         }
         all.sort(comparator);
 

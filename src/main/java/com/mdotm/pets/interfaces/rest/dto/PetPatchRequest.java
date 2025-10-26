@@ -8,6 +8,6 @@ import java.util.Optional;
 public record PetPatchRequest(
         Optional<String> name,
         Optional<String> species,
-        @Min(0) Optional<Integer> age,
+        Optional<@Min(0) Integer> age,
         Optional<String> ownerName
 ) {}

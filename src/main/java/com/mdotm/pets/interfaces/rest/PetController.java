@@ -51,7 +51,7 @@ public class PetController {
     }
 
     @PatchMapping("/{id}")
-    public PetResponse patch(@PathVariable Long id, @RequestBody PetPatchRequest request) {
+    public PetResponse patch(@PathVariable Long id, @Valid @RequestBody PetPatchRequest request) {
         Pet current = service.get(id);
         String name = request.name() != null && request.name().isPresent() ? request.name().get() : current.name();
         String species = request.species() != null && request.species().isPresent() ? request.species().get() : current.species();
@@ -85,12 +85,39 @@ public class PetController {
 
     private List<SortOrder> parseSort(List<String> sort) {
         List<SortOrder> orders = new ArrayList<>();
-        if (sort == null) return orders;
+        if (sort == null || sort.isEmpty()) return orders;
+
+        List<String> tokens = new ArrayList<>();
         for (String s : sort) {
-            if (s == null || s.isBlank()) continue;
-            String[] parts = s.split(",");
-            String property = parts[0].trim();
-            Direction dir = (parts.length > 1 && "desc".equalsIgnoreCase(parts[1])) ? Direction.DESC : Direction.ASC;
+            if (s == null) continue;
+            s = s.trim();
+            if (s.isEmpty()) continue;
+            if (s.contains(",")) {
+                for (String part : s.split(",")) {
+                    if (part != null && !part.isBlank()) tokens.add(part.trim());
+                }
+            } else {
+                tokens.add(s);
+            }
+        }
+
+        for (int i = 0; i < tokens.size();) {
+            String property = tokens.get(i);
+            String next = (i + 1 < tokens.size()) ? tokens.get(i + 1) : null;
+
+            if ("asc".equalsIgnoreCase(property) || "desc".equalsIgnoreCase(property)) {
+                i++;
+                continue;
+            }
+
+            Direction dir = Direction.ASC;
+            if (next != null && ("desc".equalsIgnoreCase(next) || "asc".equalsIgnoreCase(next))) {
+                dir = "desc".equalsIgnoreCase(next) ? Direction.DESC : Direction.ASC;
+                i += 2;
+            } else {
+                i += 1;
+            }
+
             orders.add(new SortOrder(property, dir));
         }
         return orders;
